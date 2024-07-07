@@ -5,41 +5,164 @@ const EndianModes = {
     BE: 'BE'
 };
 
-const Mapping = {
-    byte: 'Byte',
-    sbyte: 'SByte',
-    int8: 'Int8',
-    int16: 'Int16',
-    int32: 'Int32',
-    int64: 'BigInt64',
-    uint8: 'Byte',
-    uint16: 'UInt16',
-    uint32: 'UInt32',
-    uint64: 'BigUInt64',
-    float: 'Float',
-    double: 'Double',
-    string7: 'String7'
-};
-
 const defaultEndianMode = EndianModes.LE;
+const defaultEndianModeLowerCase = defaultEndianMode.toLowerCase();
 
-function composeReadOperationName(type, endianMode) {
-    return 'read' + Mapping[type] + endianMode;
+function _readType(def, sb, path) {
+    switch (def) {
+        case 'int16':
+        case 'int32':
+        case 'int64':
+        case 'uint16':
+        case 'uint32':
+        case 'uint64':
+        case 'float':
+        case 'double':
+            def += defaultEndianModeLowerCase;
+    }
+    switch (def) {
+        case 'uint8':
+        case 'byte':
+            return sb.readUInt8();
+        case 'int8':
+        case 'sbyte':
+            return sb.readInt8();
+        case 'int16le':
+            return sb.readInt16LE();
+        case 'int32le':
+            return sb.readInt32LE();
+        case 'int64le':
+            return sb.readBigInt64LE();
+        case 'uint16le':
+            return sb.readUInt16LE();
+        case 'uint32le':
+            return sb.readUInt32LE();
+        case 'uint64le':
+            return sb.readBigUInt64LE();
+        case 'floatle':
+            return sb.readFloatLE();
+        case 'doublele':
+            return sb.readDoubleLE();
+        case 'int16be':
+            return sb.readInt16BE();
+        case 'int32be':
+            return sb.readInt32BE();
+        case 'int64be':
+            return sb.readBigInt64BE();
+        case 'uint16be':
+            return sb.readUInt16BE();
+        case 'uint32be':
+            return sb.readUInt32BE();
+        case 'uint64be':
+            return sb.readBigUInt64BE();
+        case 'floatbe':
+            return sb.readFloatBE();
+        case 'doublebe':
+            return sb.readDoubleBE();
+        case 'string0':
+            return sb.readString0();
+        case 'string7':
+            return sb.readString7();
+        case 'string':
+            throw new Error(`string may only be used as a $format`);
+        case 'buffer':
+            throw new Error(`buffer may only be used as a $format`);
+        default:
+            throw new Error(`Unknown struct type: '${def}' for '${path}'`);
+    }
 }
 
-function composeDefaultReadOperationName(type) {
-    return composeReadOperationName(type, defaultEndianMode);
-}
+function _writeType(def, sb, val, path) {
+    switch (def) {
+        case 'int16':
+        case 'int32':
+        case 'int64':
+        case 'uint16':
+        case 'uint32':
+        case 'uint64':
+        case 'float':
+        case 'double':
+            def += defaultEndianModeLowerCase;
+    }
 
-function composeWriteOperationName(type, endianMode) {
-    return 'write' + Mapping[type] + endianMode;
-}
-
-function composeDefaultWriteOperationName(type) {
-    return composeWriteOperationName(type, defaultEndianMode);
+    switch (def) {
+        case 'uint8':
+        case 'byte':
+            sb.writeUInt8(val);
+            break;
+        case 'int8':
+        case 'sbyte':
+            sb.writeInt8(val);
+            break;
+        case 'int16le':
+            sb.writeInt16LE(val);
+            break;
+        case 'int32le':
+            sb.writeInt32LE(val);
+            break;
+        case 'int64le':
+            sb.writeBigInt64LE(val);
+            break;
+        case 'uint16le':
+            sb.writeUInt16LE(val);
+            break;
+        case 'uint32le':
+            sb.writeUInt32LE(val);
+            break;
+        case 'uint64le':
+            sb.writeBigUInt64LE(val);
+            break;
+        case 'floatle':
+            sb.writeFloatLE(val);
+            break;
+        case 'doublele':
+            sb.writeDoubleLE(val);
+            break;
+        case 'int16be':
+            sb.writeInt16BE(val);
+            break;
+        case 'int32be':
+            sb.writeInt32BE(val);
+            break;
+        case 'int64be':
+            sb.writeBigInt64BE(val);
+            break;
+        case 'uint16be':
+            sb.writeUInt16BE(val);
+            break;
+        case 'uint32be':
+            sb.writeUInt32BE(val);
+            break;
+        case 'uint64be':
+            sb.writeBigUInt64BE(val);
+            break;
+        case 'floatbe':
+            sb.writeFloatBE(val);
+            break;
+        case 'doublebe':
+            sb.writeDoubleBE(val);
+            break;
+        case 'string0':
+            if (typeof val !== 'string') throw new Error(`_write: string: ${val} is not a string (${path})`);
+            sb.writeString0(val);
+            break;
+        case 'string7':
+            if (typeof val !== 'string') throw new Error(`_write: string: ${val} is not a string (${path})`);
+            sb.writeString7(val);
+            break;
+        case 'string':
+            throw new Error(`_write: string may only be used as a $format`);
+        case 'buffer':
+            throw new Error(`_write: buffer may only be used as a $format`);
+        default:
+            throw new Error(`Unknown struct type: '${def}' for '${path}'`);
+    }
 }
 
 function resolvePath(obj, path) {
+    if (!path.includes('.')) {
+        return obj[path];
+    }
     let result = obj;
     let parts = path.split('.');
     while (parts.length > 0) {
@@ -66,7 +189,7 @@ function _findInScopes(path, scopes) {
 }
 
 function _resolve(q, scopes) {
-    if (Number.isInteger(q)) {
+    if (Number.isFinite(q)) {
         return q;
     }
     if (typeof q === 'string') {
@@ -85,11 +208,13 @@ function _read(def, sb, struct, scopes, name) {
         return _resolve(q, scopes);
     };
 
-    if (Array.isArray(def)) {
-        val = [];
-        for (let i = 0; i < def.length; i++) {
-            let obj = _read(def[i], sb, {}, scopes, name);
-            val.push(obj);
+    if (typeof def === 'string') {
+        if (def.startsWith('char')) {
+            let [_, lenStr] = def.split('_');
+            let len = Math.max(1, Number(lenStr));
+            val = sb.readString(len);
+        } else {
+            val = _readType(def, sb, name);
         }
     } else if (typeof def === 'object') {
         if (def.$ignore) {
@@ -148,101 +273,34 @@ function _read(def, sb, struct, scopes, name) {
             }
         } else if (def.$switch) {
             let numCase = resolve(def.$switch);
-            let foundCase = def.$cases.find(c => c.$case == numCase);
-            if (foundCase) {
-                val = _read(foundCase.$format, sb, {}, scopes, name);
-            } else {
-                let defaultCase = def.$cases.find(c => c.$case == null);
-                if (defaultCase) {
-                    val = _read(defaultCase.$format, sb, {}, scopes, name);
-                }
+            if (Array.isArray(def.$cases)) {
+                let newCases = {};
+                def.$cases.forEach(c => (newCases[c.$case] = c));
+                def.$cases = newCases;
             }
+            let foundCase = def.$cases[numCase];
+            if (!foundCase) foundCase = def.$cases.default ?? def.$cases.null;
+            if (!foundCase) throw new Error(`$switch: case ${numCase} nor a default case found`);
+            val = _read(foundCase, sb, {}, scopes, name);
         } else {
             val = {};
-            Object.entries(def).forEach(e => {
-                let [name, type] = e;
-                val[name] = _read(type, sb, val, scopes, name);
+            Object.keys(def).forEach(key => {
+                val[key] = _read(def[key], sb, val, scopes, key);
             });
-        }
-
-        // TODO: need to re-consider this, as it is not compatible with writing back the struct
-        //  May need a separate $mapRead and $mapWrite for this
-        // if (def.$map) {
-        //     if (typeof def.$map === 'function') {
-        //         val = def.$map(val, name, struct, scopes);
-        //     } else if (def.$map === 'number') {
-        //         val = Number(val);
-        //     }
-        // }
-    } else {
-        if (def.startsWith('char')) {
-            let [_, len] = def.split('_');
-            len = Math.max(1, len);
-            val = sb.readString(len);
-        } else {
-            const baseDef = def.slice(0, -2); // remove last two chars (be/le)
-            switch (def) {
-                case 'uint8':
-                case 'byte':
-                    val = sb.readByte();
-                    break;
-                case 'int8':
-                case 'sbyte':
-                    val = sb.readSByte();
-                    break;
-                case 'int16le':
-                case 'int32le':
-                case 'int64le':
-                case 'uint16le':
-                case 'uint32le':
-                case 'uint64le':
-                case 'floatle':
-                case 'doublele':
-                    val = sb[composeReadOperationName(baseDef, EndianModes.LE)]();
-                    break;
-                case 'int16be':
-                case 'int32be':
-                case 'int64be':
-                case 'uint16be':
-                case 'uint32be':
-                case 'uint64be':
-                case 'floatbe':
-                case 'doublebe':
-                    val = sb[composeReadOperationName(baseDef, EndianModes.BE)]();
-                    break;
-                case 'int16':
-                case 'int32':
-                case 'int64':
-                case 'uint16':
-                case 'uint32':
-                case 'uint64':
-                case 'float':
-                case 'double':
-                    val = sb[composeDefaultReadOperationName(def)]();
-                    break;
-                case 'string0':
-                    val = sb.readString0();
-                    break;
-                case 'string7':
-                    val = sb.readString7();
-                    break;
-                case 'string':
-                    throw new Error(`string may only be used as a $format`);
-                case 'buffer':
-                    throw new Error(`buffer may only be used as a $format`);
-                default:
-                    throw new Error(`Unknown struct type: '${def}' for '${name}'`);
-            }
         }
     }
 
     // Remove current scope from stack, MAKE SURE there is only ONE return statement in this function!
     scopes.shift();
 
-    Object.defineProperty(struct, name, {
-        value: val,
-        enumerable: !ignore
-    });
+    if (!ignore) {
+        struct[name] = val;
+    } else {
+        Object.defineProperty(struct, name, {
+            value: val,
+            enumerable: false
+        });
+    }
 
     return val;
 }
@@ -263,7 +321,7 @@ function fixStringLength(str, len) {
  */
 function _write(def, sb, val, scopes, name) {
     scopes.unshift(val);
-
+    
     const resolve = q => {
         return _resolve(q, scopes);
     };
@@ -277,61 +335,7 @@ function _write(def, sb, val, scopes, name) {
             let str = fixStringLength(val, len);
             sb.writeString(str);
         } else {
-            const baseDef = def.slice(0, -2); // remove last two chars (be/le)
-            switch (def) {
-                case 'uint8':
-                case 'byte':
-                    sb.writeByte(val);
-                    break;
-                case 'int8':
-                case 'sbyte':
-                    sb.writeSByte(val);
-                    break;
-                case 'int16le':
-                case 'int32le':
-                case 'int64le':
-                case 'uint16le':
-                case 'uint32le':
-                case 'uint64le':
-                case 'floatle':
-                case 'doublele':
-                    sb[composeWriteOperationName(baseDef, EndianModes.LE)](val);
-                    break;
-                case 'int16be':
-                case 'int32be':
-                case 'int64be':
-                case 'uint16be':
-                case 'uint32be':
-                case 'uint64be':
-                case 'floatbe':
-                case 'doublebe':
-                    sb[composeWriteOperationName(baseDef, EndianModes.BE)](val);
-                    break;
-                case 'int16':
-                case 'int32':
-                case 'int64':
-                case 'uint16':
-                case 'uint32':
-                case 'uint64':
-                case 'float':
-                case 'double':
-                    sb[composeDefaultWriteOperationName(def)](val);
-                    break;
-                case 'string0':
-                    if (typeof val !== 'string') throw new Error(`_write: string: ${val} is not a string (${name})`);
-                    sb.writeString0(val);
-                    break;
-                case 'string7':
-                    if (typeof val !== 'string') throw new Error(`_write: string: ${val} is not a string (${name})`);
-                    sb.writeString7(val);
-                    break;
-                case 'string':
-                    throw new Error(`_write: string may only be used as a $format`);
-                case 'buffer':
-                    throw new Error(`_write: buffer may only be used as a $format`);
-                default:
-                    throw new Error(`Unknown struct type: '${def}' for '${name}'`);
-            }
+            _writeType(def, sb, val, name);
         }
     } else if (typeof def === 'object') {
         if (def.$goto != null) {
@@ -386,6 +390,8 @@ function _write(def, sb, val, scopes, name) {
                 let encoding = def.$encoding;
                 let str = val ?? '';
                 if (length) {
+                    // If the encoding is something like utf16le, we need to half the given length
+                    if (encoding === 'utf16le') length /= 2;
                     str = fixStringLength(str, length);
                 }
                 sb.writeString(str, encoding);
@@ -399,15 +405,15 @@ function _write(def, sb, val, scopes, name) {
             }
         } else if (def.$switch) {
             let numCase = resolve(def.$switch);
-            let foundCase = def.$cases.find(c => c.$case == numCase);
-            if (foundCase) {
-                _write(foundCase.$format, sb, val, scopes, name);
-            } else {
-                let defaultCase = def.$cases.find(c => c.$case == null);
-                if (defaultCase) {
-                    _write(defaultCase.$format, sb, val, scopes, name);
-                }
+            if (Array.isArray(def.$cases)) {
+                let newCases = {};
+                def.$cases.forEach(c => (newCases[c.$case] = c));
+                def.$cases = newCases;
             }
+            let foundCase = def.$cases[numCase];
+            if (!foundCase) foundCase = def.$cases.default ?? def.$cases.null;
+            if (!foundCase) throw new Error(`$switch: case ${numCase} nor a default case found`);
+            _write(foundCase, sb, val, scopes, name);
         } else {
             if (val == null) throw new Error(`_write: Can not read properties from missing '${name}'`);
             Object.entries(def).forEach(e => {
@@ -422,6 +428,13 @@ function _write(def, sb, val, scopes, name) {
     scopes.shift();
 }
 
+/**
+ * 
+ * @param {StructorDefinition | string} def 
+ * @param {StreamBuffer | Buffer} buffer 
+ * @param { { offset?: number, info?: Record<string,object> }} [options]
+ * @returns 
+ */
 function readStruct(def, buffer, options) {
     options = {
         offset: 0,
@@ -439,6 +452,14 @@ function readStruct(def, buffer, options) {
     return result;
 }
 
+/**
+ * 
+ * @param {any} obj 
+ * @param {StructorDefinition | string} def 
+ * @param {StreamBuffer | Buffer} buffer 
+ * @param { { offset?: number, info?: Record<string,object> }} [options]
+ * @returns 
+ */
 function writeStruct(obj, def, buffer, options) {
     options = {
         offset: 0,

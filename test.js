@@ -11,6 +11,7 @@ test('read - simple', t => {
 });
 
 test('read - basic', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         a: 'byte',
         b: 'byte',
@@ -31,6 +32,7 @@ test('read - basic', t => {
 });
 
 test('read - array type', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         a: ['byte', 'byte', 'uint32']
     };
@@ -47,6 +49,7 @@ test('read - array type', t => {
 });
 
 test('read - numeric types', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         a: 'int8',
         a1: 'sbyte',
@@ -124,6 +127,7 @@ test('read - numeric types', t => {
 });
 
 test('read - string types', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         a: { $format: 'string' },
         b: 'string7',
@@ -464,6 +468,7 @@ test('read - $format - $repeat - by deep sibling value', t => {
 });
 
 test('read - $format - $repeat - nested', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         shape: {
             $format: {
@@ -511,6 +516,7 @@ test('read - $format - $repeat - nested', t => {
 });
 
 test('read - $format - $foreach - simple', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         numbers: {
             $repeat: 3,
@@ -566,14 +572,15 @@ test('read - $format - $foreach - wrong list', t => {
 });
 
 test('read - $format - $foreach - no alias', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         numbers: {
             $repeat: 3,
             $format: 'byte'
         },
-        a: {
-            $foreach: 'numbers',
-            $format: {}
+        a: {            
+            $format: {},
+            $foreach: 'numbers'
         }
     };
     let sb = new StreamBuffer(Buffer.alloc(3));
@@ -625,7 +632,8 @@ test('read - $format - $tell - missing $tell', t => {
     t.is(e.message, "$format: '$tell' must have a $tell property containing its type");
 });
 
-test('read - $switch - nested', t => {
+test('read - $switch - nested - old $cases syntax', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         numObjects: {
             $format: 'byte',
@@ -688,7 +696,157 @@ test('read - $switch - nested', t => {
     });
 });
 
+test('read - $switch - nested', t => {
+    let struct = {
+        numObjects: {
+            $format: 'byte',
+            $ignore: true
+        },
+        objects: {
+            $repeat: 'numObjects',
+            $format: {
+                name: 'string7',
+                dataType: 'byte',
+                data: {
+                    $switch: 'dataType',
+                    $cases: {
+                        0: { radius: 'byte' },
+                        1: ['byte', 'byte'],
+                        default: 'byte'
+                    }
+                }
+            }
+        }
+    };
+    let sb = new StreamBuffer(Buffer.alloc(30));
+    sb.writeByte(3); // numObjects
+    // Object 1
+    sb.writeString7('Ball1');
+    sb.writeByte(0); // dataType 0 (data is a single byte)
+    sb.writeByte(50);
+    // Object 2
+    sb.writeString7('Square1');
+    sb.writeByte(1); // dataType 1 (data is a two bytes)
+    sb.writeByte(10);
+    sb.writeByte(255);
+    // Object 3
+    sb.writeString7('Circle1');
+    sb.writeByte(2); // dataType 2 (data is a single byte - default case)
+    sb.writeByte(100);
+
+    let result = b.readStruct(struct, sb.buffer);
+
+    t.deepEqual(result, {
+        objects: [
+            {
+                name: 'Ball1',
+                dataType: 0,
+                data: {
+                    radius: 50
+                }
+            },
+            {
+                name: 'Square1',
+                dataType: 1,
+                data: [10, 255]
+            },
+            {
+                name: 'Circle1',
+                dataType: 2,
+                data: 100
+            }
+        ]
+    });
+});
+
+test('read - $switch - README example', t => {
+    /** @type {StructorDefinition} */
+    let struct = {
+        type: 'byte',
+        shape: {
+            $switch: 'type',
+            $cases: {
+                1: {
+                    $format: {
+                        radius: 'uint32'
+                    }
+                },
+                2: {
+                    $format: {
+                        width: 'uint16',
+                        height: 'uint16'
+                    }
+                },
+                3: {
+                    $format: {
+                        numPoints: 'byte',
+                        points: {
+                            $repeat: 'numPoints',
+                            $format: {
+                                x: 'byte',
+                                y: 'byte'
+                            }
+                        }
+                    }
+                },
+                default: {
+                    $format: {
+                        unknown: 'byte'
+                    }
+                }
+            }
+        }
+    }
+
+    let circleBuf = new StreamBuffer(Buffer.alloc(5));
+    circleBuf.writeByte(1)
+    circleBuf.writeUInt32LE(38892);
+    
+    let circleResult = b.readStruct(struct, circleBuf.buffer);
+    t.deepEqual(circleResult, {
+        type: 1,
+        shape: {
+            radius: 38892
+        }
+    });
+
+    let squareBuf = new StreamBuffer(Buffer.alloc(5));
+    squareBuf.writeByte(2)
+    squareBuf.writeUInt16LE(96);
+    squareBuf.writeUInt16LE(128);
+
+    let squareResult = b.readStruct(struct, squareBuf.buffer);
+    t.deepEqual(squareResult, {
+        type: 2,
+        shape: {
+            width: 96,
+            height: 128
+        }
+    });
+
+    let polygonBuf = new StreamBuffer(Buffer.alloc(14));
+    polygonBuf.writeByte(3);
+    polygonBuf.writeByte(3);
+    polygonBuf.writeByte(0);
+    polygonBuf.writeByte(2);
+    polygonBuf.writeByte(128);
+    polygonBuf.writeByte(24);
+    polygonBuf.writeByte(255);
+    polygonBuf.writeByte(8);
+
+    let polygonResult = b.readStruct(struct, polygonBuf.buffer);
+    t.deepEqual(polygonResult, {
+        type: 3,
+        shape: {
+            numPoints: 3,
+            points: [{ x: 0, y: 2 }, { x: 128, y: 24 }, { x: 255, y: 8 }]
+        }
+    });
+
+});
+
 test('README example', t => {
+    /** @type {StructorDefinition} */
     let struct = {
         numPersons: {
             $format: 'byte',
@@ -1140,11 +1298,12 @@ test('write - bad $format', t => {
     };
 
     let result = Buffer.alloc(1);
+    /** @ts-ignore Intentional */
     let e = t.throws(_ => b.writeStruct(obj, struct, result));
     t.is(e.message, '_write: Unknown def type: 1 (number)');
 });
 
-test('write - $switch', t => {
+test('write - $switch - old $cases syntax', t => {
     let struct = {
         a: {
             $switch: 'type',
@@ -1153,6 +1312,54 @@ test('write - $switch', t => {
                 { $case: 0, $format: 'byte' },
                 { $case: 1, $format: 'uint16' }
             ]
+        }
+    };
+
+    let obj = {
+        type: 0,
+        a: 255
+    };
+
+    let result = Buffer.alloc(3);
+    b.writeStruct(obj, struct, result);
+
+    let expected = new StreamBuffer(Buffer.alloc(3));
+    expected.writeByte(255);
+
+    t.deepEqual(result, expected.buffer);
+
+    // type 1
+    obj.type = 1;
+    obj.a = 65535;
+    result = Buffer.alloc(3);
+    b.writeStruct(obj, struct, result);
+
+    expected = new StreamBuffer(Buffer.alloc(3));
+    expected.writeUInt16LE(65535);
+
+    t.deepEqual(result, expected.buffer);
+
+    // test default
+    obj.type = 2;
+    obj.a = 65535;
+    result = Buffer.alloc(3);
+    b.writeStruct(obj, struct, result);
+
+    expected = new StreamBuffer(Buffer.alloc(3));
+    expected.writeUInt16BE(65535);
+
+    t.deepEqual(result, expected.buffer);
+});
+
+test('write - $switch', t => {
+    let struct = {
+        a: {
+            $switch: 'type',
+            $cases: {
+                0: 'byte',
+                1: 'uint16',
+                default: 'uint16be'            
+            }
         }
     };
 
@@ -1831,6 +2038,10 @@ test('write - unknown def type', t => {
     let e = t.throws(_ => b.writeStruct(obj, struct, result));
     t.is(e.message, "Unknown struct type: 'guid' for 'a'");
 });
+
+test('write - utf16 length and read', t => {
+    // TODO: check if utf16le is written with $length correctly and consistent with read
+})
 
 // sizeOf
 
