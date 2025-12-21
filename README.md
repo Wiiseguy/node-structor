@@ -11,8 +11,8 @@
 In the example below we will be reading a list of people from a binary source.
 
 ```js
-const fs = require('fs');
-const Structor = require('node-structor');
+const fs = require('fs')
+const Structor = require('node-structor')
 
 const structDef = {
     numPersons: {
@@ -40,14 +40,14 @@ const structDef = {
             }
         }
     }
-};
+}
 
-let result = Structor.readStruct(structDef, fs.readFileSync('./examples/people.dat'));
+let result = Structor.readStruct(structDef, fs.readFileSync('./examples/people.dat'))
 
-console.log(result);
+console.log(result)
 ```
 
-> Not that `'string7'` is used - this denotes a string that is prepended by the length of that string. [Reference](<https://msdn.microsoft.com/en-us/library/system.io.binarywriter.write7bitencodedint(v=vs.110).aspx>).
+> Note that `'string7'` is used - this denotes a string that is prepended by the length of that string. [Reference](<https://msdn.microsoft.com/en-us/library/system.io.binarywriter.write7bitencodedint(v=vs.110).aspx>).
 
 Running this will log the following:
 
@@ -76,7 +76,7 @@ Running this will log the following:
             },
             hobbies: []
         }
-    ];
+    ]
 }
 ```
 
@@ -228,18 +228,18 @@ const struct = {
     shape: {
         $switch: 'type',
         $cases: {
-            1: {
+            1: { // when type is 1, assume circle data follows
                 $format: {
                     radius: 'uint32'
                 }
             },
-            2: {
+            2: { // when type is 2, assume rectangle data follows
                 $format: {
                     width: 'uint16',
                     height: 'uint16'
                 }
             },
-            3: {
+            3: { // when type is 3, assume polygon data follows
                 $format: {
                     numPoints: 'byte',
                     points: {
@@ -279,8 +279,8 @@ const struct = {
     type: 3,
     shape: {
         points: [
-            { x: 0, y: 2 }, 
-            { x: 128, y: 24 }, 
+            { x: 0, y: 2 },
+            { x: 128, y: 24 },
             { x: 255, y: 8 }
         ]
     }

@@ -1,52 +1,55 @@
-const test = require('aqa');
-const { StreamBuffer } = require('streambuf');
-const b = require('./index');
-const { readFileSync } = require('fs');
+const test = require('aqa')
+const { StreamBuffer } = require('streambuf')
+const b = require('./index')
+const { readFileSync } = require('fs')
 
 test('read - simple', t => {
-    let sb = new StreamBuffer(Buffer.alloc(1));
-    sb.writeByte(255);
+    let sb = new StreamBuffer(Buffer.alloc(1))
+    sb.writeByte(255)
 
-    t.is(b.readStruct('byte', sb.buffer), 255);
-});
+    t.is(b.readStruct('byte', sb.buffer), 255)
+})
 
 test('read - basic', t => {
     /** @type {StructorDefinition} */
     let struct = {
         a: 'byte',
         b: 'byte',
-        c: 'sbyte'
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(1);
-    sb.writeByte(255);
-    sb.writeByte(255);
+        c: 'sbyte',
+        d: 'char_1'
+    }
+    let sb = new StreamBuffer(Buffer.alloc(4))
+    sb.writeByte(1)
+    sb.writeByte(255)
+    sb.writeByte(255)
+    sb.writeByte(97)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 1,
         b: 255,
-        c: -1
-    });
-});
+        c: -1,
+        d: 'a'
+    })
+})
 
 test('read - array type', t => {
     /** @type {StructorDefinition} */
     let struct = {
         a: ['byte', 'byte', 'uint32']
-    };
-    let sb = new StreamBuffer(Buffer.alloc(6));
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeUInt32LE(9000);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(6))
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeUInt32LE(9000)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: [1, 2, 9000]
-    });
-});
+    })
+})
 
 test('read - numeric types', t => {
     /** @type {StructorDefinition} */
@@ -72,34 +75,34 @@ test('read - numeric types', t => {
         r: 'uint16',
         s: 'uint32',
         t: 'uint64'
-    };
-    let sb = new StreamBuffer(Buffer.alloc(87));
+    }
+    let sb = new StreamBuffer(Buffer.alloc(87))
     // a - g
-    sb.writeUInt8(127);
-    sb.writeSByte(-128);
-    sb.writeInt16LE(-(2 ** 15));
-    sb.writeInt16BE(-(2 ** 15));
-    sb.writeInt32LE(-(2 ** 31));
-    sb.writeInt32BE(-(2 ** 31));
-    sb.writeBigInt64LE(-(2n ** 63n));
-    sb.writeBigInt64BE(-(2n ** 63n));
+    sb.writeUInt8(127)
+    sb.writeSByte(-128)
+    sb.writeInt16LE(-(2 ** 15))
+    sb.writeInt16BE(-(2 ** 15))
+    sb.writeInt32LE(-(2 ** 31))
+    sb.writeInt32BE(-(2 ** 31))
+    sb.writeBigInt64LE(-(2n ** 63n))
+    sb.writeBigInt64BE(-(2n ** 63n))
     // h - n
-    sb.writeByte(255);
-    sb.writeUInt16LE(65535);
-    sb.writeUInt16BE(65535);
-    sb.writeUInt32LE(2 ** 32 - 1);
-    sb.writeUInt32BE(2 ** 32 - 1);
-    sb.writeBigUInt64LE(2n ** 64n - 1n);
-    sb.writeBigUInt64BE(2n ** 64n - 2n);
+    sb.writeByte(255)
+    sb.writeUInt16LE(65535)
+    sb.writeUInt16BE(65535)
+    sb.writeUInt32LE(2 ** 32 - 1)
+    sb.writeUInt32BE(2 ** 32 - 1)
+    sb.writeBigUInt64LE(2n ** 64n - 1n)
+    sb.writeBigUInt64BE(2n ** 64n - 2n)
     // o - t
-    sb.writeInt16LE(-(2 ** 15));
-    sb.writeInt32LE(-(2 ** 31));
-    sb.writeBigInt64LE(-(2n ** 63n));
-    sb.writeUInt16LE(65535);
-    sb.writeUInt32LE(2 ** 32 - 1);
-    sb.writeBigUInt64LE(2n ** 64n - 1n);
+    sb.writeInt16LE(-(2 ** 15))
+    sb.writeInt32LE(-(2 ** 31))
+    sb.writeBigInt64LE(-(2n ** 63n))
+    sb.writeUInt16LE(65535)
+    sb.writeUInt32LE(2 ** 32 - 1)
+    sb.writeBigUInt64LE(2n ** 64n - 1n)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 127,
@@ -123,8 +126,8 @@ test('read - numeric types', t => {
         r: 65535,
         s: 4294967295,
         t: 18446744073709551615n
-    });
-});
+    })
+})
 
 test('read - string types', t => {
     /** @type {StructorDefinition} */
@@ -132,42 +135,47 @@ test('read - string types', t => {
         a: { $format: 'string' },
         b: 'string7',
         c: 'string0',
-        d: 'char_3'
-    };
+        d: 'char_3',
+        e: {
+            $format: 'char_3'
+        }
+    }
 
-    let sb = new StreamBuffer(Buffer.alloc(18));
-    sb.writeString('hello\x00');
-    sb.writeByte(5); // length of b
-    sb.writeString('world');
-    sb.writeString('!');
-    sb.writeByte(0);
-    sb.writeString('abc');
+    let sb = new StreamBuffer(Buffer.alloc(21))
+    sb.writeString('hello\x00')
+    sb.writeByte(5) // length of b
+    sb.writeString('world')
+    sb.writeString('!')
+    sb.writeByte(0)
+    sb.writeString('abc')
+    sb.writeString('xyz')
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 'hello',
         b: 'world',
         c: '!',
-        d: 'abc'
-    });
-});
+        d: 'abc',
+        e: 'xyz'
+    })
+})
 
 test('read - $format - simple', t => {
     let struct = {
         a: {
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(1));
-    sb.writeByte(3);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(1))
+    sb.writeByte(3)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 3
-    });
-});
+    })
+})
 
 test('read - $format - nested', t => {
     let struct = {
@@ -177,20 +185,20 @@ test('read - $format - nested', t => {
                 y: 'byte'
             }
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(2));
-    sb.writeByte(3);
-    sb.writeByte(100);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(2))
+    sb.writeByte(3)
+    sb.writeByte(100)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         point: {
             x: 3,
             y: 100
         }
-    });
-});
+    })
+})
 
 test('read - $format - string - with length', t => {
     let struct = {
@@ -202,17 +210,17 @@ test('read - $format - string - with length', t => {
             $format: 'string',
             $length: 2
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(8));
-    sb.writeString('hello');
+    }
+    let sb = new StreamBuffer(Buffer.alloc(8))
+    sb.writeString('hello')
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         name: 'hel',
         name2: 'lo'
-    });
-});
+    })
+})
 
 test.skip('read - $format - string - with $map', t => {
     let struct = {
@@ -224,20 +232,20 @@ test.skip('read - $format - string - with $map', t => {
             $format: 'string',
             $map: (...args) => args
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(24));
-    sb.writeString('456.8');
-    sb.writeByte(0);
-    sb.writeString('456.8');
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(24))
+    sb.writeString('456.8')
+    sb.writeByte(0)
+    sb.writeString('456.8')
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         num1: 456.8,
         num2: ['456.8', 'num2', result, []]
-    });
-});
+    })
+})
 
 test('read - $format - string - with length - by sibling value', t => {
     let struct = {
@@ -250,18 +258,18 @@ test('read - $format - string - with length - by sibling value', t => {
             $format: 'string',
             $length: 'name2len'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(12));
-    sb.writeByte(4);
-    sb.writeString('hello world');
+    }
+    let sb = new StreamBuffer(Buffer.alloc(12))
+    sb.writeByte(4)
+    sb.writeString('hello world')
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         name: 'hel',
         name2: 'lo w'
-    });
-});
+    })
+})
 
 test('read - $format - string - with length - sibling not found', t => {
     let struct = {
@@ -274,32 +282,32 @@ test('read - $format - string - with length - sibling not found', t => {
             $format: 'string',
             $length: 'name2len__bad'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(12));
-    sb.writeByte(4);
-    sb.writeString('hello world');
+    }
+    let sb = new StreamBuffer(Buffer.alloc(12))
+    sb.writeByte(4)
+    sb.writeString('hello world')
 
-    let e = t.throws(_ => b.readStruct(struct, sb.buffer));
-    t.is(e.message, "'name2len__bad' not found in scope.");
-});
+    let e = t.throws(_ => b.readStruct(struct, sb.buffer))
+    t.is(e.message, "'name2len__bad' not found in scope.")
+})
 
 test('read - $format - string - no length (0 byte terminator)', t => {
     let struct = {
         str: {
             $format: 'string'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString('hello');
-    sb.writeByte(0);
-    sb.writeString('hi!');
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString('hello')
+    sb.writeByte(0)
+    sb.writeString('hi!')
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         str: 'hello'
-    });
-});
+    })
+})
 
 test('read - $format - string - encoding (utf8 default)', t => {
     let struct = {
@@ -307,17 +315,17 @@ test('read - $format - string - encoding (utf8 default)', t => {
             $format: 'string',
             $encoding: 'utf8'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString('😃');
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString('😃')
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         str: '😃'
-    });
-});
+    })
+})
 
 test('read - $format - string - encoding', t => {
     let struct = {
@@ -325,45 +333,45 @@ test('read - $format - string - encoding', t => {
             $format: 'string',
             $encoding: 'ascii'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString('😃');
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString('😃')
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         str: 'p\x1F\x18\x03'
-    });
-});
+    })
+})
 
 test('read - string', t => {
     let struct = {
         str: {
             $format: 'string'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString('howdy');
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString('howdy')
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
     t.deepEqual(result, {
         str: 'howdy'
-    });
-});
+    })
+})
 
 test('read - string7', t => {
     let struct = {
         str: 'string7'
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString7('howdy');
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString7('howdy')
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
     t.deepEqual(result, {
         str: 'howdy'
-    });
-});
+    })
+})
 
 test('read - $format - buffer', t => {
     let struct = {
@@ -371,30 +379,30 @@ test('read - $format - buffer', t => {
             $format: 'buffer',
             $length: 4
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString('😃');
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString('😃')
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         buf: Buffer.from([0xf0, 0x9f, 0x98, 0x83])
-    });
-});
+    })
+})
 
 test('read - $format - buffer - no length', t => {
     let struct = {
         buf: {
             $format: 'buffer'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(10));
-    sb.writeString('😃');
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(10))
+    sb.writeString('😃')
+    sb.writeByte(0)
 
-    t.throws(_ => b.readStruct(struct, sb.buffer));
-});
+    t.throws(_ => b.readStruct(struct, sb.buffer))
+})
 
 test('read - $format - $repeat - simple', t => {
     let struct = {
@@ -402,18 +410,18 @@ test('read - $format - $repeat - simple', t => {
             $repeat: 3,
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(255);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(3))
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(255)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: [1, 2, 255]
-    });
-});
+    })
+})
 
 test('read - $format - $repeat - by sibling value', t => {
     let struct = {
@@ -424,20 +432,20 @@ test('read - $format - $repeat - by sibling value', t => {
             $repeat: 'num',
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(4));
-    sb.writeByte(3); // num
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(255);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(4))
+    sb.writeByte(3) // num
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(255)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         num: 3,
         a: [1, 2, 255]
-    });
-});
+    })
+})
 
 test('read - $format - $repeat - by deep sibling value', t => {
     let struct = {
@@ -453,19 +461,19 @@ test('read - $format - $repeat - by deep sibling value', t => {
             $repeat: 'config.lengths.a',
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(4));
-    sb.writeByte(3); // num
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(255);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(4))
+    sb.writeByte(3) // num
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(255)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: [1, 2, 255]
-    });
-});
+    })
+})
 
 test('read - $format - $repeat - nested', t => {
     /** @type {StructorDefinition} */
@@ -486,15 +494,15 @@ test('read - $format - $repeat - nested', t => {
                 }
             }
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(5));
-    sb.writeByte(2); // numPoints
-    sb.writeByte(3);
-    sb.writeByte(100);
-    sb.writeByte(4);
-    sb.writeByte(200);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(5))
+    sb.writeByte(2) // numPoints
+    sb.writeByte(3)
+    sb.writeByte(100)
+    sb.writeByte(4)
+    sb.writeByte(200)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         shape: {
@@ -512,8 +520,8 @@ test('read - $format - $repeat - nested', t => {
                 }
             ]
         }
-    });
-});
+    })
+})
 
 test('read - $format - $foreach - simple', t => {
     /** @type {StructorDefinition} */
@@ -535,13 +543,13 @@ test('read - $format - $foreach - simple', t => {
                 }
             }
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(2);
-    sb.writeByte(1);
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(3))
+    sb.writeByte(2)
+    sb.writeByte(1)
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         numbers: [2, 1, 0],
@@ -550,8 +558,8 @@ test('read - $format - $foreach - simple', t => {
             { address: 1, data: 1 },
             { address: 0, data: 2 }
         ]
-    });
-});
+    })
+})
 
 test('read - $format - $foreach - wrong list', t => {
     let struct = {
@@ -560,16 +568,16 @@ test('read - $format - $foreach - wrong list', t => {
             $foreach: 'numbers n',
             $format: {}
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(2);
-    sb.writeByte(1);
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(3))
+    sb.writeByte(2)
+    sb.writeByte(1)
+    sb.writeByte(0)
 
-    let e = t.throws(_ => b.readStruct(struct, sb.buffer));
+    let e = t.throws(_ => b.readStruct(struct, sb.buffer))
 
-    t.is(e.message, '$foreach: numbers must be an array.');
-});
+    t.is(e.message, '$foreach: numbers must be an array.')
+})
 
 test('read - $format - $foreach - no alias', t => {
     /** @type {StructorDefinition} */
@@ -578,20 +586,20 @@ test('read - $format - $foreach - no alias', t => {
             $repeat: 3,
             $format: 'byte'
         },
-        a: {            
+        a: {
             $format: {},
             $foreach: 'numbers'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(2);
-    sb.writeByte(1);
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(3))
+    sb.writeByte(2)
+    sb.writeByte(1)
+    sb.writeByte(0)
 
-    let e = t.throws(_ => b.readStruct(struct, sb.buffer));
+    let e = t.throws(_ => b.readStruct(struct, sb.buffer))
 
-    t.is(e.message, `$foreach: item alias is missing, e.g. 'a' in $foreach: "numbers a"`);
-});
+    t.is(e.message, `$foreach: item alias is missing, e.g. 'a' in $foreach: "numbers a"`)
+})
 
 test('read - $format - $tell', t => {
     let struct = {
@@ -600,21 +608,21 @@ test('read - $format - $tell', t => {
             $format: '$tell',
             $tell: 'uint32be'
         }
-    };
+    }
 
-    let sb = new StreamBuffer(Buffer.alloc(5));
-    sb.writeByte(2);
-    sb.writeUInt32BE(1);
+    let sb = new StreamBuffer(Buffer.alloc(5))
+    sb.writeByte(2)
+    sb.writeUInt32BE(1)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 2,
         b: 1
-    });
+    })
 
-    t.is(sb.tell(), 5);
-});
+    t.is(sb.tell(), 5)
+})
 
 test('read - $format - $tell - missing $tell', t => {
     let struct = {
@@ -622,15 +630,15 @@ test('read - $format - $tell - missing $tell', t => {
         b: {
             $format: '$tell'
         }
-    };
+    }
 
-    let sb = new StreamBuffer(Buffer.alloc(5));
-    sb.writeByte(2);
-    sb.writeUInt32BE(1);
+    let sb = new StreamBuffer(Buffer.alloc(5))
+    sb.writeByte(2)
+    sb.writeUInt32BE(1)
 
-    let e = t.throws(_ => b.readStruct(struct, sb.buffer));
-    t.is(e.message, "$format: '$tell' must have a $tell property containing its type");
-});
+    let e = t.throws(_ => b.readStruct(struct, sb.buffer))
+    t.is(e.message, "$format: '$tell' must have a $tell property containing its type")
+})
 
 test('read - $switch - nested - old $cases syntax', t => {
     /** @type {StructorDefinition} */
@@ -654,24 +662,24 @@ test('read - $switch - nested - old $cases syntax', t => {
                 }
             }
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(30));
-    sb.writeByte(3); // numObjects
+    }
+    let sb = new StreamBuffer(Buffer.alloc(30))
+    sb.writeByte(3) // numObjects
     // Object 1
-    sb.writeString7('Ball1');
-    sb.writeByte(0); // dataType 0 (data is a single byte)
-    sb.writeByte(50);
+    sb.writeString7('Ball1')
+    sb.writeByte(0) // dataType 0 (data is a single byte)
+    sb.writeByte(50)
     // Object 2
-    sb.writeString7('Square1');
-    sb.writeByte(1); // dataType 1 (data is a two bytes)
-    sb.writeByte(10);
-    sb.writeByte(255);
+    sb.writeString7('Square1')
+    sb.writeByte(1) // dataType 1 (data is a two bytes)
+    sb.writeByte(10)
+    sb.writeByte(255)
     // Object 3
-    sb.writeString7('Circle1');
-    sb.writeByte(2); // dataType 2 (data is a single byte - default case)
-    sb.writeByte(100);
+    sb.writeString7('Circle1')
+    sb.writeByte(2) // dataType 2 (data is a single byte - default case)
+    sb.writeByte(100)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         objects: [
@@ -693,8 +701,8 @@ test('read - $switch - nested - old $cases syntax', t => {
                 data: 100
             }
         ]
-    });
-});
+    })
+})
 
 test('read - $switch - nested', t => {
     let struct = {
@@ -717,24 +725,24 @@ test('read - $switch - nested', t => {
                 }
             }
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(30));
-    sb.writeByte(3); // numObjects
+    }
+    let sb = new StreamBuffer(Buffer.alloc(30))
+    sb.writeByte(3) // numObjects
     // Object 1
-    sb.writeString7('Ball1');
-    sb.writeByte(0); // dataType 0 (data is a single byte)
-    sb.writeByte(50);
+    sb.writeString7('Ball1')
+    sb.writeByte(0) // dataType 0 (data is a single byte)
+    sb.writeByte(50)
     // Object 2
-    sb.writeString7('Square1');
-    sb.writeByte(1); // dataType 1 (data is a two bytes)
-    sb.writeByte(10);
-    sb.writeByte(255);
+    sb.writeString7('Square1')
+    sb.writeByte(1) // dataType 1 (data is a two bytes)
+    sb.writeByte(10)
+    sb.writeByte(255)
     // Object 3
-    sb.writeString7('Circle1');
-    sb.writeByte(2); // dataType 2 (data is a single byte - default case)
-    sb.writeByte(100);
+    sb.writeString7('Circle1')
+    sb.writeByte(2) // dataType 2 (data is a single byte - default case)
+    sb.writeByte(100)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         objects: [
@@ -756,8 +764,28 @@ test('read - $switch - nested', t => {
                 data: 100
             }
         ]
-    });
-});
+    })
+})
+
+test('read - $switch - case not found and no default', t => {
+    let struct = {
+        type: 'byte',
+        a: {
+            $switch: 'type',
+            $cases: {
+                0: 'byte'
+            }
+        }
+    }
+    let sb = Buffer.alloc(2)
+    sb.writeUInt8(1, 0) // type = 1
+
+    let e = t.throws(() => {
+        b.readStruct(struct, sb)
+    })
+
+    t.is(e.message, '$switch: case 1 nor a default case found')
+})
 
 test('read - $switch - README example', t => {
     /** @type {StructorDefinition} */
@@ -798,52 +826,55 @@ test('read - $switch - README example', t => {
         }
     }
 
-    let circleBuf = new StreamBuffer(Buffer.alloc(5));
+    let circleBuf = new StreamBuffer(Buffer.alloc(5))
     circleBuf.writeByte(1)
-    circleBuf.writeUInt32LE(38892);
-    
-    let circleResult = b.readStruct(struct, circleBuf.buffer);
+    circleBuf.writeUInt32LE(38892)
+
+    let circleResult = b.readStruct(struct, circleBuf.buffer)
     t.deepEqual(circleResult, {
         type: 1,
         shape: {
             radius: 38892
         }
-    });
+    })
 
-    let squareBuf = new StreamBuffer(Buffer.alloc(5));
+    let squareBuf = new StreamBuffer(Buffer.alloc(5))
     squareBuf.writeByte(2)
-    squareBuf.writeUInt16LE(96);
-    squareBuf.writeUInt16LE(128);
+    squareBuf.writeUInt16LE(96)
+    squareBuf.writeUInt16LE(128)
 
-    let squareResult = b.readStruct(struct, squareBuf.buffer);
+    let squareResult = b.readStruct(struct, squareBuf.buffer)
     t.deepEqual(squareResult, {
         type: 2,
         shape: {
             width: 96,
             height: 128
         }
-    });
+    })
 
-    let polygonBuf = new StreamBuffer(Buffer.alloc(14));
-    polygonBuf.writeByte(3);
-    polygonBuf.writeByte(3);
-    polygonBuf.writeByte(0);
-    polygonBuf.writeByte(2);
-    polygonBuf.writeByte(128);
-    polygonBuf.writeByte(24);
-    polygonBuf.writeByte(255);
-    polygonBuf.writeByte(8);
+    let polygonBuf = new StreamBuffer(Buffer.alloc(14))
+    polygonBuf.writeByte(3)
+    polygonBuf.writeByte(3)
+    polygonBuf.writeByte(0)
+    polygonBuf.writeByte(2)
+    polygonBuf.writeByte(128)
+    polygonBuf.writeByte(24)
+    polygonBuf.writeByte(255)
+    polygonBuf.writeByte(8)
 
-    let polygonResult = b.readStruct(struct, polygonBuf.buffer);
+    let polygonResult = b.readStruct(struct, polygonBuf.buffer)
     t.deepEqual(polygonResult, {
         type: 3,
         shape: {
             numPoints: 3,
-            points: [{ x: 0, y: 2 }, { x: 128, y: 24 }, { x: 255, y: 8 }]
+            points: [
+                { x: 0, y: 2 },
+                { x: 128, y: 24 },
+                { x: 255, y: 8 }
+            ]
         }
-    });
-
-});
+    })
+})
 
 test('README example', t => {
     /** @type {StructorDefinition} */
@@ -873,10 +904,10 @@ test('README example', t => {
                 }
             }
         }
-    };
+    }
 
-    let peopleDat = readFileSync('./examples/people.dat');
-    let result = b.readStruct(struct, peopleDat);
+    let peopleDat = readFileSync('./examples/people.dat')
+    let result = b.readStruct(struct, peopleDat)
     //let result = b.readStruct(struct, sb.buffer);
 
     t.deepEqual(result, {
@@ -904,8 +935,8 @@ test('README example', t => {
                 hobbies: []
             }
         ]
-    });
-});
+    })
+})
 
 test('read - $goto - basic', t => {
     let struct = {
@@ -925,22 +956,22 @@ test('read - $goto - basic', t => {
             $goto: 0,
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(4));
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(3);
-    sb.writeByte(4);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(4))
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(3)
+    sb.writeByte(4)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 4,
         b: 3,
         c: 2,
         d: 1
-    });
-});
+    })
+})
 
 test('read - $goto - by sibling value', t => {
     let struct = {
@@ -960,22 +991,22 @@ test('read - $goto - by sibling value', t => {
             $goto: 'c',
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(4));
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(3);
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(4))
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(3)
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 0,
         b: 1,
         c: 2,
         d: 3
-    });
-});
+    })
+})
 
 test('read - $skip - basic', t => {
     let struct = {
@@ -984,19 +1015,19 @@ test('read - $skip - basic', t => {
             $skip: 1,
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(3);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(3))
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(3)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 1,
         b: 3
-    });
-});
+    })
+})
 
 test('read - $skip - by sibling value', t => {
     let struct = {
@@ -1005,19 +1036,19 @@ test('read - $skip - by sibling value', t => {
             $skip: 'a',
             $format: 'byte'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(3));
-    sb.writeByte(1);
-    sb.writeByte(2);
-    sb.writeByte(3);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(3))
+    sb.writeByte(1)
+    sb.writeByte(2)
+    sb.writeByte(3)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 1,
         b: 3
-    });
-});
+    })
+})
 
 test('read - big ints', t => {
     let struct = {
@@ -1026,17 +1057,17 @@ test('read - big ints', t => {
             $goto: 0,
             $format: 'int64'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(8));
-    sb.writeUInt32LE(0xffffffff);
-    sb.writeUInt32LE(0xffffffff);
-    let result = b.readStruct(struct, sb.buffer);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(8))
+    sb.writeUInt32LE(0xffffffff)
+    sb.writeUInt32LE(0xffffffff)
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         a: 18446744073709551615n,
         b: -1n
-    });
-});
+    })
+})
 
 test('read - $format - $value', t => {
     let struct = {
@@ -1047,66 +1078,66 @@ test('read - $format - $value', t => {
             $value: 'name',
             $format: 'string'
         }
-    };
-    let sb = new StreamBuffer(Buffer.alloc(8));
-    sb.writeString('hello');
-    sb.writeByte(0);
+    }
+    let sb = new StreamBuffer(Buffer.alloc(8))
+    sb.writeString('hello')
+    sb.writeByte(0)
 
-    let result = b.readStruct(struct, sb.buffer);
+    let result = b.readStruct(struct, sb.buffer)
 
     t.deepEqual(result, {
         name: 'hello',
         name2: 'hello'
-    });
-});
+    })
+})
 
 test('read - $format - $value - without $format', t => {
     let struct = {
         name: {
             $value: 'a'
         }
-    };
+    }
 
-    let sb = new StreamBuffer(Buffer.alloc(8));
-    sb.writeString('hello');
-    sb.writeByte(0);
+    let sb = new StreamBuffer(Buffer.alloc(8))
+    sb.writeString('hello')
+    sb.writeByte(0)
 
-    let e = t.throws(_ => b.readStruct(struct, sb.buffer));
-    t.is(e.message, '$value must be used with $format');
-});
+    let e = t.throws(_ => b.readStruct(struct, sb.buffer))
+    t.is(e.message, '$value must be used with $format')
+})
 
 test('read - unknown def type', t => {
     let struct = {
         a: 'guid'
-    };
+    }
 
-    let result = Buffer.alloc(1);
-    let e = t.throws(_ => b.readStruct(struct, result));
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.readStruct(struct, result))
 
-    t.is(e.message, "Unknown struct type: 'guid' for 'a'");
-});
+    t.is(e.message, "Unknown struct type: 'guid' for 'a'")
+})
 
 test('read - string as def type', t => {
     let struct = {
         a: 'string'
-    };
+    }
 
-    let result = Buffer.alloc(1);
-    let e = t.throws(_ => b.readStruct(struct, result));
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.readStruct(struct, result))
 
-    t.is(e.message, 'string may only be used as a $format');
-});
+    t.is(e.message, 'string may only be used as a $format')
+})
 
 test('read - buffer as def type', t => {
     let struct = {
         a: 'buffer'
-    };
+    }
 
-    let result = Buffer.alloc(1);
-    let e = t.throws(_ => b.readStruct(struct, result));
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.readStruct(struct, result))
 
-    t.is(e.message, 'buffer may only be used as a $format');
-});
+    t.is(e.message, 'buffer may only be used as a $format')
+})
 
 // Write
 
@@ -1115,44 +1146,44 @@ test('write - simple', t => {
         a: 'byte',
         b: 'byte',
         c: 'sbyte'
-    };
+    }
 
     let obj = {
         a: 1,
         b: 255,
         c: -1
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeByte(1);
-    expected.writeByte(255);
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeByte(1)
+    expected.writeByte(255)
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - array type', t => {
     let struct = {
         a: ['byte', 'byte', 'uint32']
-    };
+    }
 
     let obj = {
         a: [1, 2, 9000]
-    };
+    }
 
-    let result = Buffer.alloc(6);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(6)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(6));
-    expected.writeByte(1);
-    expected.writeByte(2);
-    expected.writeUInt32LE(9000);
+    let expected = new StreamBuffer(Buffer.alloc(6))
+    expected.writeByte(1)
+    expected.writeByte(2)
+    expected.writeUInt32LE(9000)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - numeric types', t => {
     let struct = {
@@ -1177,7 +1208,7 @@ test('write - numeric types', t => {
         r: 'uint16',
         s: 'uint32',
         t: 'uint64'
-    };
+    }
 
     let obj = {
         a: 127,
@@ -1201,39 +1232,39 @@ test('write - numeric types', t => {
         r: 65535,
         s: 4294967295,
         t: 18446744073709551615n
-    };
+    }
 
-    let result = Buffer.alloc(87);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(87)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(87));
+    let expected = new StreamBuffer(Buffer.alloc(87))
     // a - g
-    expected.writeUInt8(127);
-    expected.writeSByte(-128);
-    expected.writeInt16LE(-32768);
-    expected.writeInt16BE(-32768);
-    expected.writeInt32LE(-2147483648);
-    expected.writeInt32BE(-2147483648);
-    expected.writeBigInt64LE(-9223372036854775808n);
-    expected.writeBigInt64BE(-9223372036854775808n);
+    expected.writeUInt8(127)
+    expected.writeSByte(-128)
+    expected.writeInt16LE(-32768)
+    expected.writeInt16BE(-32768)
+    expected.writeInt32LE(-2147483648)
+    expected.writeInt32BE(-2147483648)
+    expected.writeBigInt64LE(-9223372036854775808n)
+    expected.writeBigInt64BE(-9223372036854775808n)
     // h - n
-    expected.writeByte(255);
-    expected.writeUInt16LE(65535);
-    expected.writeUInt16BE(65535);
-    expected.writeUInt32LE(4294967295);
-    expected.writeUInt32BE(4294967295);
-    expected.writeBigUInt64LE(18446744073709551615n);
-    expected.writeBigUInt64BE(18446744073709551614n);
+    expected.writeByte(255)
+    expected.writeUInt16LE(65535)
+    expected.writeUInt16BE(65535)
+    expected.writeUInt32LE(4294967295)
+    expected.writeUInt32BE(4294967295)
+    expected.writeBigUInt64LE(18446744073709551615n)
+    expected.writeBigUInt64BE(18446744073709551614n)
     // o - t
-    expected.writeInt16LE(-32768);
-    expected.writeInt32LE(-2147483648);
-    expected.writeBigInt64LE(-9223372036854775808n);
-    expected.writeUInt16LE(65535);
-    expected.writeUInt32LE(4294967295);
-    expected.writeBigUInt64LE(18446744073709551615n);
+    expected.writeInt16LE(-32768)
+    expected.writeInt32LE(-2147483648)
+    expected.writeBigInt64LE(-9223372036854775808n)
+    expected.writeUInt16LE(65535)
+    expected.writeUInt32LE(4294967295)
+    expected.writeBigUInt64LE(18446744073709551615n)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - object', t => {
     let struct = {
@@ -1247,61 +1278,61 @@ test('write - object', t => {
             name: 'string0',
             name7: 'string7'
         }
-    };
+    }
 
     let obj = {
         a: { age: 30, name: 'Aaa', name7: 'Eee' },
         b: { age: 35, name: 'Bbb', name7: 'Fff' }
-    };
+    }
 
-    let result = Buffer.alloc(24);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(24)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(24));
-    expected.writeUInt32LE(30);
-    expected.writeString('Aaa');
-    expected.writeByte(0);
-    expected.writeString7('Eee');
-    expected.writeUInt32LE(35);
-    expected.writeString('Bbb');
-    expected.writeByte(0);
-    expected.writeString7('Fff');
+    let expected = new StreamBuffer(Buffer.alloc(24))
+    expected.writeUInt32LE(30)
+    expected.writeString('Aaa')
+    expected.writeByte(0)
+    expected.writeString7('Eee')
+    expected.writeUInt32LE(35)
+    expected.writeString('Bbb')
+    expected.writeByte(0)
+    expected.writeString7('Fff')
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - object - null', t => {
     let struct = {
         a: {
             name: 'string0'
         }
-    };
+    }
 
     let obj = {
         a: null
-    };
+    }
 
-    let result = Buffer.alloc(1);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, "_write: Can not read properties from missing 'a'");
-});
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, "_write: Can not read properties from missing 'a'")
+})
 
 test('write - bad $format', t => {
     let struct = {
         a: {
             $format: 1
         }
-    };
+    }
 
     let obj = {
         a: 1
-    };
+    }
 
-    let result = Buffer.alloc(1);
+    let result = Buffer.alloc(1)
     /** @ts-ignore Intentional */
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, '_write: Unknown def type: 1 (number)');
-});
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, '_write: Unknown def type: 1 (number)')
+})
 
 test('write - $switch - old $cases syntax', t => {
     let struct = {
@@ -1313,43 +1344,43 @@ test('write - $switch - old $cases syntax', t => {
                 { $case: 1, $format: 'uint16' }
             ]
         }
-    };
+    }
 
     let obj = {
         type: 0,
         a: 255
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
+    t.deepEqual(result, expected.buffer)
 
     // type 1
-    obj.type = 1;
-    obj.a = 65535;
-    result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    obj.type = 1
+    obj.a = 65535
+    result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeUInt16LE(65535);
+    expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeUInt16LE(65535)
 
-    t.deepEqual(result, expected.buffer);
+    t.deepEqual(result, expected.buffer)
 
     // test default
-    obj.type = 2;
-    obj.a = 65535;
-    result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    obj.type = 2
+    obj.a = 65535
+    result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeUInt16BE(65535);
+    expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeUInt16BE(65535)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $switch', t => {
     let struct = {
@@ -1358,46 +1389,64 @@ test('write - $switch', t => {
             $cases: {
                 0: 'byte',
                 1: 'uint16',
-                default: 'uint16be'            
+                default: 'uint16be'
             }
         }
-    };
+    }
 
     let obj = {
         type: 0,
         a: 255
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
+    t.deepEqual(result, expected.buffer)
 
     // type 1
-    obj.type = 1;
-    obj.a = 65535;
-    result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    obj.type = 1
+    obj.a = 65535
+    result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeUInt16LE(65535);
+    expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeUInt16LE(65535)
 
-    t.deepEqual(result, expected.buffer);
+    t.deepEqual(result, expected.buffer)
 
     // test default
-    obj.type = 2;
-    obj.a = 65535;
-    result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    obj.type = 2
+    obj.a = 65535
+    result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeUInt16BE(65535);
+    expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeUInt16BE(65535)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
+
+test('write - $switch - case not found and no default', t => {
+    let struct = {
+        a: {
+            $switch: 'type',
+            $cases: {
+                0: 'byte'
+            }
+        }
+    }
+    let obj = {
+        type: 1,
+        a: 255
+    }
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, '$switch: case 1 nor a default case found')
+})
 
 test('write - $format - $value', t => {
     let struct = {
@@ -1406,39 +1455,39 @@ test('write - $format - $value', t => {
             $value: 'a',
             $format: 'byte'
         }
-    };
+    }
 
     let obj = {
         a: 255,
         b: 1
-    };
+    }
 
-    let result = Buffer.alloc(2);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(2)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(2));
-    expected.writeByte(255);
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(2))
+    expected.writeByte(255)
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $value - without $format', t => {
     let struct = {
         a: {
             $value: 'b'
         }
-    };
+    }
 
     let obj = {
         a: 1
-    };
+    }
 
-    let result = Buffer.alloc(1);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
 
-    t.is(e.message, '_write: $value must be used with $format');
-});
+    t.is(e.message, '_write: $value must be used with $format')
+})
 
 test('write - $format - $tell', t => {
     let struct = {
@@ -1447,24 +1496,24 @@ test('write - $format - $tell', t => {
             $format: '$tell',
             $tell: 'uint32be'
         }
-    };
+    }
 
     let obj = {
         a: 2,
         b: 0
-    };
+    }
 
-    let result = Buffer.alloc(5);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(5)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(5));
-    expected.writeByte(2);
-    expected.writeUInt32BE(1);
+    let expected = new StreamBuffer(Buffer.alloc(5))
+    expected.writeByte(2)
+    expected.writeUInt32BE(1)
 
-    t.is(expected.tell(), result.length);
+    t.is(expected.tell(), result.length)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $format - $tell - missing $tell', t => {
     let struct = {
@@ -1472,17 +1521,17 @@ test('write - $format - $tell - missing $tell', t => {
         b: {
             $format: '$tell'
         }
-    };
+    }
 
     let obj = {
         a: 2,
         b: 0
-    };
+    }
 
-    let result = Buffer.alloc(5);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, "_write: $format: '$tell' must have a $tell property containing its type (b)");
-});
+    let result = Buffer.alloc(5)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, "_write: $format: '$tell' must have a $tell property containing its type (b)")
+})
 
 test('write - char_x', t => {
     let struct = {
@@ -1504,7 +1553,7 @@ test('write - char_x', t => {
         f: {
             name: 'char_3'
         }
-    };
+    }
 
     let obj = {
         a: { name: 'Abcdefgh' },
@@ -1513,21 +1562,21 @@ test('write - char_x', t => {
         d: { name: '' },
         e: {},
         f: { name: 'Ab' }
-    };
+    }
 
-    let result = Buffer.alloc(19);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(19)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(result.length));
-    expected.writeString('Abc');
-    expected.writeString('B\x00\x00');
-    expected.writeString('Cde');
-    expected.writeString('\x00\x00\x00');
-    expected.writeString('\x00\x00\x00');
-    expected.writeString('Ab\x00');
+    let expected = new StreamBuffer(Buffer.alloc(result.length))
+    expected.writeString('Abc')
+    expected.writeString('B\x00\x00')
+    expected.writeString('Cde')
+    expected.writeString('\x00\x00\x00')
+    expected.writeString('\x00\x00\x00')
+    expected.writeString('Ab\x00')
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - string types', t => {
     let struct = {
@@ -1537,26 +1586,26 @@ test('write - string types', t => {
         },
         b: 'string7',
         c: 'string0'
-    };
+    }
 
     let obj = {
         a: 'hello',
         b: 'world',
         c: '!'
-    };
+    }
 
-    let result = Buffer.alloc(15);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(15)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(15));
-    expected.writeString('hello');
-    expected.writeByte(5);
-    expected.writeString('world');
-    expected.writeString('!');
-    expected.writeByte(0);
+    let expected = new StreamBuffer(Buffer.alloc(15))
+    expected.writeString('hello')
+    expected.writeByte(5)
+    expected.writeString('world')
+    expected.writeString('!')
+    expected.writeByte(0)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - string types - bad value', t => {
     let struct = {
@@ -1564,46 +1613,46 @@ test('write - string types - bad value', t => {
         b: 'string7',
         c: 'string0',
         d: 'char_3'
-    };
+    }
 
     let obj1 = {
         a: 1,
         b: 2,
         c: 3
-    };
+    }
 
-    let result = Buffer.alloc(15);
-    let e = t.throws(_ => b.writeStruct(obj1, struct, result));
-    t.is(e.message, '_write: string: 1 is not a string (a)');
+    let result = Buffer.alloc(15)
+    let e = t.throws(_ => b.writeStruct(obj1, struct, result))
+    t.is(e.message, '_write: string: 1 is not a string (a)')
 
     let obj2 = {
         a: 'hello',
         b: 2,
         c: 3
-    };
+    }
 
-    e = t.throws(_ => b.writeStruct(obj2, struct, result));
-    t.is(e.message, '_write: string: 2 is not a string (b)');
+    e = t.throws(_ => b.writeStruct(obj2, struct, result))
+    t.is(e.message, '_write: string: 2 is not a string (b)')
 
     let obj3 = {
         a: 'hello',
         b: 'world',
         c: 3
-    };
+    }
 
-    e = t.throws(_ => b.writeStruct(obj3, struct, result));
-    t.is(e.message, '_write: string: 3 is not a string (c)');
+    e = t.throws(_ => b.writeStruct(obj3, struct, result))
+    t.is(e.message, '_write: string: 3 is not a string (c)')
 
     let obj4 = {
         a: 'hello',
         b: 'world',
         c: '!',
         d: 4
-    };
+    }
 
-    e = t.throws(_ => b.writeStruct(obj4, struct, result));
-    t.is(e.message, '_write: char_x: 4 is not a string (d)');
-});
+    e = t.throws(_ => b.writeStruct(obj4, struct, result))
+    t.is(e.message, '_write: char_x: 4 is not a string (d)')
+})
 
 test('write - $format - $repeat - simple', t => {
     let struct = {
@@ -1611,22 +1660,22 @@ test('write - $format - $repeat - simple', t => {
             $repeat: 3,
             $format: 'byte'
         }
-    };
+    }
 
     let obj = {
         a: [1, 2, 255]
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(3));
-    expected.writeByte(1);
-    expected.writeByte(2);
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(3))
+    expected.writeByte(1)
+    expected.writeByte(2)
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $format - $repeat - by sibling value', t => {
     let struct = {
@@ -1635,24 +1684,24 @@ test('write - $format - $repeat - by sibling value', t => {
             $repeat: 'num',
             $format: 'byte'
         }
-    };
+    }
 
     let obj = {
         num: 3,
         a: [1, 2, 255]
-    };
+    }
 
-    let result = Buffer.alloc(4);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(4)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(4));
-    expected.writeByte(3);
-    expected.writeByte(1);
-    expected.writeByte(2);
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(4))
+    expected.writeByte(3)
+    expected.writeByte(1)
+    expected.writeByte(2)
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $format - $repeat - by deep sibling value', t => {
     let struct = {
@@ -1668,7 +1717,7 @@ test('write - $format - $repeat - by deep sibling value', t => {
             $repeat: 'config.lengths.a',
             $format: 'byte'
         }
-    };
+    }
 
     let obj = {
         config: {
@@ -1677,19 +1726,19 @@ test('write - $format - $repeat - by deep sibling value', t => {
             }
         },
         a: [1, 2, 255]
-    };
+    }
 
-    let result = Buffer.alloc(4);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(4)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(4));
-    expected.writeByte(3);
-    expected.writeByte(1);
-    expected.writeByte(2);
-    expected.writeByte(255);
+    let expected = new StreamBuffer(Buffer.alloc(4))
+    expected.writeByte(3)
+    expected.writeByte(1)
+    expected.writeByte(2)
+    expected.writeByte(255)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $format - $foreach - simple', t => {
     let struct = {
@@ -1707,28 +1756,28 @@ test('write - $format - $foreach - simple', t => {
                 }
             }
         }
-    };
+    }
 
     let obj = {
         numbers: [3, 4, 5],
         a: [{ address: 3 }, { address: 4 }, { address: 5 }]
-    };
+    }
 
-    let result = Buffer.alloc(6);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(6)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(6));
-    expected.writeByte(3);
-    expected.writeByte(4);
-    expected.writeByte(5);
-    expected.writeByte(3);
-    expected.writeByte(4);
-    expected.writeByte(5);
+    let expected = new StreamBuffer(Buffer.alloc(6))
+    expected.writeByte(3)
+    expected.writeByte(4)
+    expected.writeByte(5)
+    expected.writeByte(3)
+    expected.writeByte(4)
+    expected.writeByte(5)
 
-    t.is(expected.tell(), result.length);
+    t.is(expected.tell(), result.length)
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $format - $foreach - simple 2', t => {
     let struct = {
@@ -1745,7 +1794,7 @@ test('write - $format - $foreach - simple 2', t => {
                 }
             }
         }
-    };
+    }
 
     let obj = {
         numbers: [3, 4, 5, 4, 3, 2, 1],
@@ -1758,29 +1807,29 @@ test('write - $format - $foreach - simple 2', t => {
             { name: 'xyz' },
             { name: 'xyz' }
         ]
-    };
+    }
 
-    let result = Buffer.alloc(30);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(30)
+    b.writeStruct(obj, struct, result)
 
-    let expected = new StreamBuffer(Buffer.alloc(30));
-    expected.writeByte(3);
-    expected.writeByte(4);
-    expected.writeByte(5);
-    expected.writeByte(4);
-    expected.writeByte(3);
-    expected.writeByte(2);
-    expected.writeByte(1);
-    expected.writeString('abc');
-    expected.writeString('defg');
-    expected.writeString('hijkl');
-    expected.writeString('xyz\x00');
-    expected.writeString('xyz');
-    expected.writeString('xy');
-    expected.writeString('x');
+    let expected = new StreamBuffer(Buffer.alloc(30))
+    expected.writeByte(3)
+    expected.writeByte(4)
+    expected.writeByte(5)
+    expected.writeByte(4)
+    expected.writeByte(3)
+    expected.writeByte(2)
+    expected.writeByte(1)
+    expected.writeString('abc')
+    expected.writeString('defg')
+    expected.writeString('hijkl')
+    expected.writeString('xyz\x00')
+    expected.writeString('xyz')
+    expected.writeString('xy')
+    expected.writeString('x')
 
-    t.deepEqual(result, expected.buffer);
-});
+    t.deepEqual(result, expected.buffer)
+})
 
 test('write - $format - $foreach - wrong syntax', t => {
     let struct = {
@@ -1789,17 +1838,17 @@ test('write - $format - $foreach - wrong syntax', t => {
             $foreach: 'numbers',
             $format: {}
         }
-    };
+    }
 
     let obj = {
         numbers: [1, 2],
         a: [{}, {}]
-    };
+    }
 
-    let result = Buffer.alloc(4);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, `$foreach: item alias is missing, e.g. 'a' in $foreach: "numbers a"`);
-});
+    let result = Buffer.alloc(4)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, `$foreach: item alias is missing, e.g. 'a' in $foreach: "numbers a"`)
+})
 
 test('write - $format - $foreach - target is not an array', t => {
     let struct = {
@@ -1808,17 +1857,17 @@ test('write - $format - $foreach - target is not an array', t => {
             $foreach: 'numbers n',
             $format: {}
         }
-    };
+    }
 
     let obj = {
         numbers: 2,
         a: {}
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, '$foreach: numbers must be an array.');
-});
+    let result = Buffer.alloc(3)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, '$foreach: numbers must be an array.')
+})
 
 test('write - $format - string with length', t => {
     let struct = {
@@ -1826,77 +1875,77 @@ test('write - $format - string with length', t => {
             $format: 'string',
             $length: 3
         }
-    };
+    }
 
     let obj1 = {
         name: 'hello'
-    };
+    }
 
-    let result1 = Buffer.alloc(8);
-    result1.fill(0xff);
-    b.writeStruct(obj1, struct, result1);
+    let result1 = Buffer.alloc(8)
+    result1.fill(0xff)
+    b.writeStruct(obj1, struct, result1)
 
-    let expectedBuffer = Buffer.alloc(8);
-    expectedBuffer.fill(0xff);
-    expectedBuffer.write('hel', 0);
+    let expectedBuffer = Buffer.alloc(8)
+    expectedBuffer.fill(0xff)
+    expectedBuffer.write('hel', 0)
 
-    t.deepEqual(result1, expectedBuffer);
+    t.deepEqual(result1, expectedBuffer)
 
     let obj2 = {
         name: 'hi'
-    };
+    }
 
-    let result2 = Buffer.alloc(8);
-    result2.fill(0xff);
-    b.writeStruct(obj2, struct, result2);
+    let result2 = Buffer.alloc(8)
+    result2.fill(0xff)
+    b.writeStruct(obj2, struct, result2)
 
-    let expectedBuffer2 = Buffer.alloc(8);
-    expectedBuffer2.fill(0xff);
-    expectedBuffer2.write('hi\x00', 0);
+    let expectedBuffer2 = Buffer.alloc(8)
+    expectedBuffer2.fill(0xff)
+    expectedBuffer2.write('hi\x00', 0)
 
-    t.deepEqual(result2, expectedBuffer2);
+    t.deepEqual(result2, expectedBuffer2)
 
     let obj3 = {
         // no name property
-    };
+    }
 
-    let result3 = Buffer.alloc(8);
-    result3.fill(0xff);
-    b.writeStruct(obj3, struct, result3);
+    let result3 = Buffer.alloc(8)
+    result3.fill(0xff)
+    b.writeStruct(obj3, struct, result3)
 
-    let expectedBuffer3 = Buffer.alloc(8);
-    expectedBuffer3.fill(0xff);
-    expectedBuffer3.write('\x00\x00\x00', 0);
+    let expectedBuffer3 = Buffer.alloc(8)
+    expectedBuffer3.fill(0xff)
+    expectedBuffer3.write('\x00\x00\x00', 0)
 
-    t.deepEqual(result3, expectedBuffer3);
+    t.deepEqual(result3, expectedBuffer3)
 
     let obj4 = {
         name: 123 // not a string
-    };
+    }
 
-    let result4 = Buffer.alloc(8);
-    result4.fill(0xff);
+    let result4 = Buffer.alloc(8)
+    result4.fill(0xff)
 
-    let e = t.throws(_ => b.writeStruct(obj4, struct, result4));
-    t.is(e.message, '_write: string: 123 is not a string (name)');
-});
+    let e = t.throws(_ => b.writeStruct(obj4, struct, result4))
+    t.is(e.message, '_write: string: 123 is not a string (name)')
+})
 
 test('write - $format - string without length', t => {
     let struct = {
         name: {
             $format: 'string'
         }
-    };
+    }
 
     let obj1 = {
         name: 'hello'
-    };
+    }
 
-    let result = Buffer.alloc(8);
-    result.fill(0xff);
-    let e = t.throws(_ => b.writeStruct(obj1, struct, result));
-    t.is(e.message, "_write: when $format = 'string', $length must be an integer greater than 0.");
-});
+    let result = Buffer.alloc(8)
+    result.fill(0xff)
+    let e = t.throws(_ => b.writeStruct(obj1, struct, result))
+    t.is(e.message, "_write: when $format = 'string', $length must be an integer greater than 0.")
+})
 
 test('write - $format - buffer', t => {
     let struct = {
@@ -1905,20 +1954,20 @@ test('write - $format - buffer', t => {
             $format: 'buffer',
             $length: 4
         }
-    };
+    }
 
     let obj = {
         a: 1,
         buf: Buffer.from([0x02, 0x03, 0x04, 0x05])
-    };
+    }
 
-    let result = Buffer.alloc(5);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(5)
+    b.writeStruct(obj, struct, result)
 
-    let expected = Buffer.from([1, 0x02, 0x03, 0x04, 0x05]);
+    let expected = Buffer.from([1, 0x02, 0x03, 0x04, 0x05])
 
-    t.deepEqual(result, expected);
-});
+    t.deepEqual(result, expected)
+})
 
 test('write - $format - buffer without length', t => {
     let struct = {
@@ -1928,45 +1977,45 @@ test('write - $format - buffer without length', t => {
         buf: {
             $format: 'buffer'
         }
-    };
+    }
 
     let obj = {
         a: 1,
         buf: Buffer.from([0x02, 0x03, 0x04, 0x05])
-    };
+    }
 
-    let result = Buffer.alloc(5);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, `_write: when $format = 'buffer', $length must be an integer greater than 0.`);
-});
+    let result = Buffer.alloc(5)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, `_write: when $format = 'buffer', $length must be an integer greater than 0.`)
+})
 
 test('write - string as def type', t => {
     let struct = {
         a: 'string'
-    };
+    }
 
     let obj = {
         a: 'hello'
-    };
+    }
 
-    let result = Buffer.alloc(5);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, '_write: string may only be used as a $format');
-});
+    let result = Buffer.alloc(5)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, '_write: string may only be used as a $format')
+})
 
 test('write - buffer as def type', t => {
     let struct = {
         a: 'buffer'
-    };
+    }
 
     let obj = {
         a: Buffer.from([0x01, 0x02, 0x03])
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, '_write: buffer may only be used as a $format');
-});
+    let result = Buffer.alloc(3)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, '_write: buffer may only be used as a $format')
+})
 
 test('write - $goto - basic', t => {
     let struct = {
@@ -1986,22 +2035,22 @@ test('write - $goto - basic', t => {
             $goto: 0,
             $format: 'byte'
         }
-    };
+    }
 
     let obj = {
         a: 4,
         b: 3,
         c: 2,
         d: 1
-    };
+    }
 
-    let result = Buffer.alloc(4);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(4)
+    b.writeStruct(obj, struct, result)
 
-    let expected = Buffer.from([1, 2, 3, 4]);
+    let expected = Buffer.from([1, 2, 3, 4])
 
-    t.deepEqual(result, expected);
-});
+    t.deepEqual(result, expected)
+})
 
 test('write - $skip - basic', t => {
     let struct = {
@@ -2010,37 +2059,52 @@ test('write - $skip - basic', t => {
             $skip: 1,
             $format: 'byte'
         }
-    };
+    }
 
     let obj = {
         a: 1,
         b: 3
-    };
+    }
 
-    let result = Buffer.alloc(3);
-    b.writeStruct(obj, struct, result);
+    let result = Buffer.alloc(3)
+    b.writeStruct(obj, struct, result)
 
-    let expected = Buffer.from([1, 0, 3]);
+    let expected = Buffer.from([1, 0, 3])
 
-    t.deepEqual(result, expected);
-});
+    t.deepEqual(result, expected)
+})
 
 test('write - unknown def type', t => {
     let struct = {
         a: 'guid'
-    };
+    }
 
     let obj = {
         a: 1
-    };
+    }
 
-    let result = Buffer.alloc(1);
-    let e = t.throws(_ => b.writeStruct(obj, struct, result));
-    t.is(e.message, "Unknown struct type: 'guid' for 'a'");
-});
+    let result = Buffer.alloc(1)
+    let e = t.throws(_ => b.writeStruct(obj, struct, result))
+    t.is(e.message, "Unknown struct type: 'guid' for 'a'")
+})
 
 test('write - utf16 length and read', t => {
-    // TODO: check if utf16le is written with $length correctly and consistent with read
+    let struct = {
+        name: {
+            $format: 'string',
+            $length: 6,
+            $encoding: 'utf16le'
+        }
+    }
+    let obj = {
+        name: 'hello'
+    }
+    let result = Buffer.alloc(12)
+    b.writeStruct(obj, struct, result)
+    let expected = new StreamBuffer(Buffer.alloc(12))
+    expected.writeString('hello', 'utf16le')
+    expected.writeUInt16LE(0) // null terminator
+    t.deepEqual(result, expected.buffer)
 })
 
 // sizeOf
@@ -2050,12 +2114,12 @@ test('sizeOf - simple', t => {
         a: 'byte',
         b: 'byte',
         c: 'sbyte'
-    };
+    }
 
-    let result = b.sizeOf(struct);
+    let result = b.sizeOf(struct)
 
-    t.is(result, 3);
-});
+    t.is(result, 3)
+})
 
 test('sizeOf - nested', t => {
     let struct = {
@@ -2074,9 +2138,9 @@ test('sizeOf - nested', t => {
                 name: 'char_8'
             }
         }
-    };
+    }
 
-    let result = b.sizeOf(struct);
+    let result = b.sizeOf(struct)
 
-    t.is(result, 48);
-});
+    t.is(result, 48)
+})
