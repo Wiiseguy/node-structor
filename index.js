@@ -233,7 +233,7 @@ function _readObject(def, sb, scopes) {
                 val[key] = _readType(h.type, sb, key)
                 continue
             } else if (h.kind === 'char') {
-                val[key] = sb.readString(h.len)
+                val[key] = sb.readChars(h.len)
                 continue
             }
         }
@@ -252,7 +252,7 @@ function _read(def, sb, struct, scopes, name) {
         if (def.startsWith('char')) {
             let [_, lenStr] = def.split('_')
             let len = Math.max(1, Number(lenStr))
-            val = sb.readString(len)
+            val = sb.readChars(len)
         } else {
             val = _readType(def, sb, name)
         }
@@ -322,8 +322,7 @@ function _write(def, sb, val, scopes, name) {
             if (typeof val !== 'string') throw new Error(`_write: char_x: ${val} is not a string (${name})`)
             let [_, lenStr] = def.split('_')
             let len = Math.max(1, Number(lenStr))
-            let str = fixStringLength(val, len)
-            sb.writeString(str)
+            sb.writeChars(val, len)
         } else {
             _writeType(def, sb, val, name)
         }

@@ -96,23 +96,23 @@ Calculates the size of the binary data that would be written according to the st
 
 ## Types
 
-| Type      | Description                                                                                                                                                                   |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `byte`    | Unsigned byte (0 to 255)                                                                                                                                                      |
-| `uint8`   | Unsigned byte (0 to 255)                                                                                                                                                      |
-| `sbyte`   | Signed byte (-128 to 127)                                                                                                                                                     |
-| `int8`    | Signed byte (-128 to 127)                                                                                                                                                     |
-| `uint16`  | 16-bit unsigned integer (0 to 65,535)                                                                                                                                         |
-| `int16`   | 16-bit signed integer (-32,768 to 32,767)                                                                                                                                     |
-| `uint32`  | 32-bit unsigned integer (0 to 4,294,967,295)                                                                                                                                  |
-| `int32`   | 32-bit signed integer (-2,147,483,648 to 2,147,483,647)                                                                                                                       |
-| `uint64`  | 64-bit unsigned integer (read as `BigInt`)                                                                                                                                    |
-| `int64`   | 64-bit signed integer (read as `BigInt`)                                                                                                                                      |
-| `char_*`  | A string of characters with its length defined by the `*`. e.g. `char_28`                                                                                                     |
-| `string0` | A string of characters terminated by a zero (0) byte. When used with writeStruct, it will write the string with a zero byte at the end.                                       |
-| `string7` | A string of characters prepended by its [7-bit encoded](<https://msdn.microsoft.com/en-us/library/system.io.binarywriter.write7bitencodedint(v=vs.110).aspx>) length          |
-| `string`  | Can only be used in conjunction with `$format`. Read `$length` amount of bytes as a new string. Can also be used with `$encoding` to specify the encoding. Default is `utf8`. |
-| `buffer`  | Can only be used in conjunction with `$format`. Read `$length` amount of bytes as a new `Buffer`.                                                                             |
+| Type      | Description                                                                                                                                                                                                                             |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `byte`    | Unsigned byte (0 to 255)                                                                                                                                                                                                                |
+| `uint8`   | Unsigned byte (0 to 255)                                                                                                                                                                                                                |
+| `sbyte`   | Signed byte (-128 to 127)                                                                                                                                                                                                               |
+| `int8`    | Signed byte (-128 to 127)                                                                                                                                                                                                               |
+| `uint16`  | 16-bit unsigned integer (0 to 65,535)                                                                                                                                                                                                   |
+| `int16`   | 16-bit signed integer (-32,768 to 32,767)                                                                                                                                                                                               |
+| `uint32`  | 32-bit unsigned integer (0 to 4,294,967,295)                                                                                                                                                                                            |
+| `int32`   | 32-bit signed integer (-2,147,483,648 to 2,147,483,647)                                                                                                                                                                                 |
+| `uint64`  | 64-bit unsigned integer (read as `BigInt`)                                                                                                                                                                                              |
+| `int64`   | 64-bit signed integer (read as `BigInt`)                                                                                                                                                                                                |
+| `char_*`  | A string of characters with its length defined by the `*`. e.g. `char_28`. When reading, the null (0) bytes are removed from the end. When writing, null bytes are added to the end if the string is shorter than the specified length. |
+| `string0` | A string of characters terminated by a null (0) byte. When used with writeStruct, it will write the string with a null byte at the end.                                                                                                 |
+| `string7` | A string of characters prepended by its [7-bit encoded](<https://msdn.microsoft.com/en-us/library/system.io.binarywriter.write7bitencodedint(v=vs.110).aspx>) length                                                                    |
+| `string`  | Can only be used in conjunction with `$format`. Read `$length` amount of bytes as a new string. Can also be used with `$encoding` to specify the encoding. Default is `utf8`.                                                           |
+| `buffer`  | Can only be used in conjunction with `$format`. Read `$length` amount of bytes as a new `Buffer`.                                                                                                                                       |
 
 > Note: By default the endianness is little-endian (LE) - But you can explicitly define the endianness e.g. `int16be`, `uint64le`, etc.
 
@@ -340,7 +340,7 @@ firstName: {
 }
 ```
 
-> Note: when `$format` is `'string'`, `$length` is optional. If not present, characters will be read until a zero-byte is encountered.
+> Note: when `$format` is `'string'`, `$length` is optional. If not present, characters will be read until a null byte (0) is encountered.
 
 ```js
 blobData: {

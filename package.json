@@ -43,7 +43,7 @@
   },
   "homepage": "https://github.com/Wiiseguy/node-struct#readme",
   "dependencies": {
-    "streambuf": "^2.0.0"
+    "streambuf": "^2.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
